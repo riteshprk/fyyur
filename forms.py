@@ -1,7 +1,35 @@
 from datetime import datetime
 from flask_wtf import Form
 from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField
-from wtforms.validators import DataRequired, AnyOf, URL
+from wtforms.validators import DataRequired, AnyOf, URL, ValidationError
+
+
+def custom_multifield_validator(form, field):
+    genres_list = [
+        'Alternative',
+        'Blues',
+        'Classical',
+        'Country',
+        'Electronic',
+        'Folk',
+        'Funk',
+        'Hip-Hop',
+        'Heavy Metal',
+        'Heavy Metal',
+        'Instrumental',
+        'Jazz',
+        'Musical Theatre',
+        'Pop',
+        'Punk',
+        'R&B',
+        'Reggae',
+        'Rock n Roll',
+        'Soul',
+        'Other',
+    ]
+    if not set(field.data) <= set(genres_list):
+        raise ValidationError('Valid choices are {}'.format(genres_list))
+
 
 class ShowForm(Form):
     artist_id = StringField(
@@ -13,8 +41,9 @@ class ShowForm(Form):
     start_time = DateTimeField(
         'start_time',
         validators=[DataRequired()],
-        default= datetime.today()
+        default=datetime.today()
     )
+
 
 class VenueForm(Form):
     name = StringField(
@@ -90,7 +119,7 @@ class VenueForm(Form):
     )
     genres = SelectMultipleField(
         # TODO implement enum restriction
-        'genres', validators=[DataRequired()],
+        'genres', validators=[DataRequired(), custom_multifield_validator],
         choices=[
             ('Alternative', 'Alternative'),
             ('Blues', 'Blues'),
@@ -111,11 +140,15 @@ class VenueForm(Form):
             ('Rock n Roll', 'Rock n Roll'),
             ('Soul', 'Soul'),
             ('Other', 'Other'),
-        ]
+
+        ],
+
     )
+
     facebook_link = StringField(
         'facebook_link', validators=[URL()]
     )
+
 
 class ArtistForm(Form):
     name = StringField(
@@ -189,7 +222,7 @@ class ArtistForm(Form):
     )
     genres = SelectMultipleField(
         # TODO implement enum restriction
-        'genres', validators=[DataRequired()],
+        'genres', validators=[DataRequired(), custom_multifield_validator],
         choices=[
             ('Alternative', 'Alternative'),
             ('Blues', 'Blues'),
@@ -216,5 +249,7 @@ class ArtistForm(Form):
         # TODO implement enum restriction
         'facebook_link', validators=[URL()]
     )
+# Implementing Custom Validator for Multiple Select Field
+
 
 # TODO IMPLEMENT NEW ARTIST FORM AND NEW SHOW FORM
