@@ -162,7 +162,15 @@ def search_venues():
 
     data = request.form['search_term']
     search = "%{}%".format(data)
-    venues = Venue.query.filter(Venue.name.ilike(search)).all()
+    search_name = Venue.query.filter(Venue.name.ilike(search)).all()
+    # Challenge work to search venue by city and state as "California, CA"
+    search_city = Venue.query.filter(func.lower(
+        Venue.city) == func.lower(data.split(', ', 1)[0])).all()
+    search_state = Venue.query.filter(func.lower(
+        Venue.state) == func.lower(data.split(', ', 1)[-1])).all()
+    venues = set(search_name).union(
+        set(search_city).intersection(set(search_state)))
+
     venue_data = []
     response_data = {"count": len(venues), "data": venue_data}
     for venue in venues:
@@ -265,7 +273,7 @@ def show_venue(venue_id):
         "past_shows_count": 1,
         "upcoming_shows_count": 1,
     }
-    #data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
+    # data = list(filter(lambda d: d['id'] == venue_id, [data1, data2, data3]))[0]
 
     venue = Venue.query.filter(Venue.id == venue_id).first()
 
@@ -355,14 +363,25 @@ def create_venue_submission():
     return redirect(url_for('create_venue_submission'))
 
 
-@app.route('/venues/<venue_id>', methods=['DELETE'])
+@app.route('/venues/<venue_id>', methods=['POST'])
 def delete_venue(venue_id):
     # TODO: Complete this endpoint for taking a venue_id, and using
     # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
-
     # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
     # clicking that button delete it from the db then redirect the user to the homepage
-    return None
+    try:
+        venue_delete = Venue.query.filter(Venue.id == venue_id).first()
+        db.session.delete(venue_delete)
+        db.session.commit()
+        flash('Venue succesfully deleted')
+    except Exception as er:
+        db.session.rollback()
+        flash('Venue could not be deleted due to error {}'.format(er))
+    finally:
+        db.session.close()
+        return render_template('pages/home.html')
+    flash('An error occurred venue could not be deleted')
+    return redirect(url_for('delete_venue'))
 
 #  Artists
 #  ----------------------------------------------------------------
@@ -397,7 +416,15 @@ def search_artists():
     # search for "band" should return "The Wild Sax Band".
     data = request.form['search_term']
     search = "%{}%".format(data)
-    artists = Artist.query.filter(Artist.name.ilike(search)).all()
+    search_name = Artist.query.filter(Artist.name.ilike(search)).all()
+    # Challenge work to search artist by city and state as "California, CA"
+    search_city = Artist.query.filter(func.lower(
+        Artist.city) == func.lower(data.split(', ', 1)[0])).all()
+    search_state = Artist.query.filter(func.lower(
+        Artist.state) == func.lower(data.split(', ', 1)[-1])).all()
+    artists = set(search_name).union(
+        set(search_city).intersection(set(search_state)))
+
     artist_data = []
     response_data = {"count": len(artists), "data": artist_data}
     for artist in artists:
@@ -494,7 +521,7 @@ def show_artist(artist_id):
         "past_shows_count": 0,
         "upcoming_shows_count": 3,
     }
-    #data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
+    # data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[0]
 
     artist = Artist.query.filter(Artist.id == artist_id).first()
 
@@ -575,14 +602,12 @@ def edit_artist(artist_id):
 # def edit_artist_submission(artist_id):
     # TODO: take values from the form submitted, and update existing
     # artist record with ID <artist_id> using the new attributes
-
     # return redirect(url_for('show_artist', artist_id=artist_id))
 
 
 @app.route('/venues/<int:venue_id>/edit', methods=['GET', 'POST'])
 def edit_venue(venue_id):
 
-    #form.genres.SelectMultipleField.default = 1
     venue = {
         "id": 1,
         "name": "The Musical Hop",
@@ -664,10 +689,8 @@ def create_artist_submission():
             db.session.rollback()
         finally:
             db.session.close()
-
             return render_template('pages/home.html')
     # on successful db insert, flash success
-
     # TODO: on unsuccessful db insert, flash an error instead.
     flash('An error occurred. Artist ' +
           form.name.data + ' could not be listed.')
@@ -747,10 +770,10 @@ def create_show_submission():
     # TODO: on unsuccessful db insert, flash an error instead.
     # e.g., flash('An error occurred. Show could not be listed.')
     # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-    form = ShowForm()
     # called to create new shows in the db, upon submitting new show listing form
     # TODO: insert form data as a new Show record in the db, instead
     # on successful db insert, flash success
+    form = ShowForm()
     if form.validate_on_submit():
         try:
             new_show = Show(
